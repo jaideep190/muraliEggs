@@ -10,8 +10,9 @@ function initializeFirebaseAdmin() {
   const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
   if (!serviceAccountJson) {
-    console.error('ERROR: GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable not set.');
-    throw new Error('Firebase Admin SDK credentials environment variable not set.');
+    const errorMessage = 'Firebase Admin SDK credentials environment variable not set. GOOGLE_APPLICATION_CREDENTIALS_JSON is missing from your .env.local file.';
+    console.error(`ERROR: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 
   try {
@@ -23,8 +24,9 @@ function initializeFirebaseAdmin() {
     });
   } catch (error: any)
   {
-    console.error("ERROR: Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Ensure it's a valid JSON string.", { originalError: error.message });
-    throw new Error(`Failed to initialize Firebase Admin due to invalid credentials. Original error: ${error.message}`);
+    const errorMessage = `Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's a valid, single-line JSON string in your .env.local file. Original error: ${error.message}`;
+    console.error(`ERROR: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 }
 

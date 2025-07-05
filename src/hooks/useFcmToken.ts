@@ -46,10 +46,10 @@ export const useFcmToken = () => {
             const tokenDocRef = doc(db, 'fcmTokens', user.uid);
             await setDoc(tokenDocRef, { tokens: arrayUnion(currentToken) }, { merge: true });
           } else {
-            console.log('No registration token available.');
+            console.log('No registration token available. Request permission to generate one.');
           }
         } catch (error) {
-          console.error('An error occurred while retrieving token. ', error);
+          console.error('FCM Token Error: An error occurred while retrieving token. This is often due to an invalid VAPID key or a disabled Firebase Cloud Messaging API.', error);
         }
       }
     };

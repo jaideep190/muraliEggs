@@ -1,11 +1,16 @@
 // src/app/api/notify/route.ts
-import { adminDb } from '@/lib/firebaseAdmin';
+import { adminDb, firebaseAdminApp } from '@/lib/firebaseAdmin';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import admin from 'firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {
+    // This will throw a specific error if the admin credentials in .env.local are bad
+    if (!firebaseAdminApp) {
+      throw new Error('Firebase Admin SDK failed to initialize.');
+    }
+
     const { userId, orderId, status } = await req.json();
 
     if (!userId || !orderId || !status) {
@@ -65,7 +70,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, sent: response.successCount, failed: response.failureCount });
 
   } catch (error: any) {
-    console.error('Error sending notification:', error);
+    console.error('Error in /api/notify:', error);
+    // Provide a more specific error message if it's a known initialization issue.
+    if (error.message.includes('GOOGLE_APPLICATION_CREDENTIALS_JSON')) {
+        return NextResponse.json({ error: 'Firebase Admin Configuration Error', details: error.message }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }
