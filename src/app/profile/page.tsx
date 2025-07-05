@@ -14,10 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { User, Save, LogOut } from 'lucide-react';
+import { User, Save, LogOut, Bell, BellOff } from 'lucide-react';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Skeleton } from '@/components/ui/skeleton';
 import { auth, db } from '@/lib/firebase';
+import { useFcmToken } from '@/hooks/useFcmToken';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isPasswordUser, setIsPasswordUser] = useState(false);
+  const { notificationPermissionStatus, requestPermission } = useFcmToken();
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -133,7 +135,7 @@ export default function ProfilePage() {
   if (loading || !userData) {
     return (
        <div className="container mx-auto max-w-lg p-4">
-          <header className="my-10 text-center">
+          <header className="my-6 sm:my-10 text-center">
             <Skeleton className="mx-auto h-10 w-48" />
             <Skeleton className="mx-auto mt-2 h-5 w-64" />
           </header>
@@ -163,7 +165,7 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto max-w-lg p-4 opacity-0 animate-fade-in-up">
-      <header className="my-10 text-center">
+      <header className="my-6 sm:my-10 text-center">
         <h1 className="flex items-center justify-center gap-2 text-4xl font-bold">
           <User className="h-8 w-8 text-primary" />
           My Profile
@@ -232,6 +234,25 @@ export default function ProfilePage() {
                 )}
               />
               
+              <div className="space-y-2 pt-4 border-t">
+                  <FormLabel>Notification Settings</FormLabel>
+                  {notificationPermissionStatus === 'granted' && (
+                      <div className="flex items-center text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                          <Bell className="mr-2 h-4 w-4" /> Notifications are enabled.
+                      </div>
+                  )}
+                  {notificationPermissionStatus === 'default' && (
+                      <Button type="button" variant="outline" className="w-full" onClick={requestPermission}>
+                          <Bell className="mr-2 h-4 w-4" /> Enable Order Notifications
+                      </Button>
+                  )}
+                  {notificationPermissionStatus === 'denied' && (
+                      <div className="flex items-center text-sm text-destructive p-3 bg-destructive/10 rounded-lg">
+                          <BellOff className="mr-2 h-4 w-4" /> Notifications are blocked in your browser settings.
+                      </div>
+                  )}
+              </div>
+
               <div className="space-y-4 pt-4 border-t">
                  <FormField
                     control={form.control}

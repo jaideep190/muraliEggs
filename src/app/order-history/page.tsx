@@ -70,7 +70,7 @@ export default function OrderHistoryPage() {
   if (authLoading || isLoading) {
     return (
       <div className="container mx-auto max-w-lg p-4">
-        <header className="my-10 text-center">
+        <header className="my-6 sm:my-10 text-center">
             <Skeleton className="mx-auto h-10 w-56" />
             <Skeleton className="mx-auto mt-2 h-5 w-64" />
         </header>
@@ -99,7 +99,7 @@ export default function OrderHistoryPage() {
 
   return (
     <div className="container mx-auto max-w-lg p-4 opacity-0 animate-fade-in-up">
-      <header className="my-10 text-center">
+      <header className="my-6 sm:my-10 text-center">
         <h1 className="flex items-center justify-center gap-2 text-4xl font-bold">
           <History className="h-8 w-8 text-primary" />
           Order History

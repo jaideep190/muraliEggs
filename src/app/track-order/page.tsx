@@ -61,13 +61,13 @@ function OrderTrackerCard({ order }: { order: Order }) {
                 <div key={index} className="flex flex-col items-center">
                   <div
                     className={cn(
-                      'flex h-12 w-12 items-center justify-center rounded-full border-2 transition-all duration-500',
+                      'flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border-2 transition-all duration-500',
                       isActive
                         ? 'border-primary bg-primary/20 text-primary'
                         : 'border-border bg-muted'
                     )}
                   >
-                    <step.icon className="h-6 w-6" />
+                    <step.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                   <p
                     className={cn(
@@ -203,7 +203,7 @@ function TrackOrderContent() {
 
   return (
     <div className="container mx-auto max-w-lg p-4">
-      <header className="my-10 text-center opacity-0 animate-fade-in-up">
+      <header className="my-6 sm:my-10 text-center opacity-0 animate-fade-in-up">
         <h1 className="flex items-center justify-center gap-2 text-4xl font-bold">
           <MapPin className="h-8 w-8 text-primary" />
           Track Your Orders
