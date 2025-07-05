@@ -98,7 +98,7 @@ export default function SignupPage() {
        <div className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem]" />
         <div className="w-full max-w-sm opacity-0 animate-fade-in-up">
          <header className="mb-10 text-center">
-            <h1 className="text-5xl font-bold tracking-tighter text-foreground">
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tighter text-foreground">
             Create an Account
             </h1>
             <p className="mt-2 text-muted-foreground">Join Murali Eggs today.</p>

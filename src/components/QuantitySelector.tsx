@@ -31,7 +31,7 @@ export default function QuantitySelector({
       <Button
         variant="secondary"
         size="icon"
-        className="h-14 w-14 rounded-full"
+        className="h-12 w-12 sm:h-14 sm:w-14 rounded-full"
         onClick={handleDecrement}
         disabled={value <= min}
         aria-label="Decrease quantity"
@@ -39,7 +39,7 @@ export default function QuantitySelector({
         <Minus className="h-6 w-6" />
       </Button>
       <span
-        className="text-5xl font-bold font-headline w-24 text-center"
+        className="text-4xl sm:text-5xl font-bold font-headline w-24 text-center"
         aria-live="polite"
       >
         {value}
@@ -47,7 +47,7 @@ export default function QuantitySelector({
       <Button
         variant="secondary"
         size="icon"
-        className="h-14 w-14 rounded-full"
+        className="h-12 w-12 sm:h-14 sm:w-14 rounded-full"
         onClick={handleIncrement}
         disabled={value >= max}
         aria-label="Increase quantity"

@@ -24,7 +24,7 @@ type StoreSettings = {
 
 export default function Home() {
   const { user, userData, loading } = useAuthRedirect({ requiredRole: 'user' });
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(30);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [isOrdering, setIsOrdering] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -136,7 +136,7 @@ export default function Home() {
   return (
     <>
       <div className="container mx-auto flex h-full flex-col items-center justify-center p-4 text-center opacity-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-        <header className="my-12">
+        <header className="my-6 sm:my-10">
            <h1 className="flex items-center justify-center gap-3 text-5xl md:text-6xl font-bold tracking-tighter text-foreground">
             <EggIcon className="h-10 w-10 md:h-12 md:w-12 text-primary animate-bounce-gentle" />
             <span>Murali Eggs</span>
@@ -144,7 +144,7 @@ export default function Home() {
           <p className="mt-4 text-lg text-muted-foreground">Fresh eggs delivered to your doorstep.</p>
         </header>
 
-        <div className="relative mb-12 w-full max-w-lg">
+        <div className="relative mb-8 w-full max-w-lg">
           <div className="rounded-lg shadow-2xl shadow-black/10 dark:shadow-black/50">
             <Image
               src="/images/hero-eggs.png"
@@ -182,44 +182,44 @@ export default function Home() {
               <Button
                 variant={quantity === 6 ? 'default' : 'outline'}
                 onClick={() => setQuantity(6)}
-                className="flex h-20 flex-col rounded-lg"
+                className="flex h-auto flex-col rounded-lg py-3"
               >
-                <span className="text-xl font-bold">6</span>
+                <span className="text-lg font-bold">6</span>
                 <span className="text-xs">Half Dozen</span>
               </Button>
               <Button
                 variant={quantity === 12 ? 'default' : 'outline'}
                 onClick={() => setQuantity(12)}
-                className="flex h-20 flex-col rounded-lg"
+                className="flex h-auto flex-col rounded-lg py-3"
               >
-                <span className="text-xl font-bold">12</span>
+                <span className="text-lg font-bold">12</span>
                 <span className="text-xs">Dozen</span>
               </Button>
               <div
                 className={cn(
-                  'flex h-20 flex-col items-center justify-center rounded-lg border text-center transition-all duration-300',
+                  'flex h-auto flex-col items-center justify-center rounded-lg border text-center transition-all duration-300 py-2',
                   isTraySelected ? 'border-primary bg-primary/10 shadow-inner' : 'border-input bg-transparent'
                 )}
               >
                 <span className="text-sm font-medium -mb-1">Trays</span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10"
+                    className="h-9 w-9"
                     onClick={handleDecrementTray}
                     disabled={trayDisplayCount < 1}
                     aria-label="Decrease tray count"
                   >
                     <Minus className="h-5 w-5" />
                   </Button>
-                  <span className="text-2xl font-bold w-12 text-center tabular-nums">
+                  <span className="text-xl font-bold w-10 text-center tabular-nums">
                     {trayDisplayCount}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10"
+                    className="h-9 w-9"
                     onClick={handleIncrementTray}
                     disabled={(trayDisplayCount + 1) * 30 > MAX_QUANTITY}
                     aria-label="Increase tray count"
@@ -229,7 +229,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            <Button onClick={() => setIsPaymentDialogOpen(true)} size="lg" className="h-14 w-full text-lg font-bold" disabled={quantity <= 0}>
+            <Button onClick={() => setIsPaymentDialogOpen(true)} size="lg" className="h-12 sm:h-14 w-full text-lg font-bold" disabled={quantity <= 0}>
               Order Now for Rs. {totalPrice.toFixed(2)}
             </Button>
           </div>

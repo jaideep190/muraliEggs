@@ -93,7 +93,7 @@ export default function LoginPage() {
        <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:6rem_4rem]" />
         <div className="w-full max-w-sm opacity-0 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <header className="mb-10 text-center">
-                <h1 className="flex items-center justify-center gap-3 text-5xl font-bold tracking-tighter text-foreground">
+                <h1 className="flex items-center justify-center gap-3 text-4xl sm:text-5xl font-bold tracking-tighter text-foreground">
                     <EggIcon className="h-10 w-10 text-primary animate-bounce-gentle" />
                     <span>Murali Eggs</span>
                 </h1>

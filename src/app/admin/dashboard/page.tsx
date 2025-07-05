@@ -20,6 +20,8 @@ import { signOut } from 'firebase/auth';
 import { format, subDays } from 'date-fns';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
+import { TooltipProvider, Tooltip as ShadTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 type Order = {
   id: string;
@@ -324,6 +326,7 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
+                 <TooltipProvider>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -367,16 +370,22 @@ export default function AdminDashboardPage() {
                                   <SelectItem value="Cancelled">Cancelled</SelectItem>
                                 </SelectContent>
                               </Select>
-                               <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleNotify(order.id, order.userId, order.status)}
-                                disabled={notifyingStates[order.id] || !order.userId}
-                                aria-label="Notify user"
-                                title="Notify user of status change"
-                              >
-                                {notifyingStates[order.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
-                              </Button>
+                               <ShadTooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handleNotify(order.id, order.userId, order.status)}
+                                    disabled={notifyingStates[order.id] || !order.userId}
+                                    aria-label="Notify user"
+                                  >
+                                    {notifyingStates[order.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{order.userId ? 'Send status update notification' : 'User ID not available to notify'}</p>
+                                </TooltipContent>
+                              </ShadTooltip>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -387,6 +396,7 @@ export default function AdminDashboardPage() {
                       )}
                     </TableBody>
                   </Table>
+                  </TooltipProvider>
                 </div>
               </CardContent>
             </Card>
