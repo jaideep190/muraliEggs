@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       }
     };
     
-    const response = await admin.messaging().sendMulticast(message);
+    const response = await admin.messaging().sendEachForMulticast(message);
     
     const tokensToRemove: string[] = [];
     response.responses.forEach((result, index) => {

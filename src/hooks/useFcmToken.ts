@@ -11,7 +11,7 @@ export const useFcmToken = () => {
   const [notificationPermissionStatus, setNotificationPermissionStatus] = useState<NotificationPermission | null>(null);
 
   const getPermissionStatus = useCallback(() => {
-     if (typeof window !== 'undefined' && 'Notification' in window) {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotificationPermissionStatus(Notification.permission);
     }
   }, []);
@@ -21,41 +21,43 @@ export const useFcmToken = () => {
   }, [getPermissionStatus]);
 
   const requestPermission = useCallback(() => {
-     if (typeof window !== 'undefined' && 'Notification' in window) {
-       Notification.requestPermission().then(permission => {
-         setNotificationPermissionStatus(permission);
-       });
-     }
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        setNotificationPermissionStatus(permission);
+      });
+    }
   }, []);
 
   useEffect(() => {
-    if (!user || !messaging) return;
+    if (!user) return;
 
     const retrieveToken = async () => {
-      if (notificationPermissionStatus === 'granted') {
-        try {
-          // VAPID key is required for web push notifications
-          const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
-          if (!vapidKey) {
-            console.error('VAPID key is not configured. Please set NEXT_PUBLIC_VAPID_KEY environment variable.');
-            return;
-          }
+      const msg = await messaging;
+      if (!msg) return;
 
-          const currentToken = await getToken(messaging, { vapidKey: vapidKey });
+      if (notificationPermissionStatus === 'granted') {
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
+        if (!vapidKey) {
+          console.error('VAPID key missing');
+          return;
+        }
+
+        try {
+          const currentToken = await getToken(msg, { vapidKey });
           if (currentToken) {
             const tokenDocRef = doc(db, 'fcmTokens', user.uid);
             await setDoc(tokenDocRef, { tokens: arrayUnion(currentToken) }, { merge: true });
           } else {
-            console.log('No registration token available. Request permission to generate one.');
+            console.log('No FCM token available');
           }
         } catch (error) {
-          console.error('FCM Token Error: An error occurred while retrieving token. This is often due to an invalid VAPID key or a disabled Firebase Cloud Messaging API.', error);
+          console.error('Failed to get FCM token:', error);
         }
       }
     };
 
     retrieveToken();
-  }, [user, notificationPermissionStatus, messaging]);
-  
+  }, [user, notificationPermissionStatus]);
+
   return { notificationPermissionStatus, requestPermission };
 };
