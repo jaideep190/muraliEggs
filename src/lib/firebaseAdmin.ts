@@ -29,8 +29,13 @@ function initializeFirebaseAdmin() {
     });
   } catch (error: any)
   {
-    console.error("Failed to parse service account JSON from GOOGLE_APPLICATION_CREDENTIALS_JSON.", error);
-    throw new Error(`Failed to initialize Firebase Admin. Original error: ${error.message}`);
+    console.error("================================================================");
+    console.error("ERROR: Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON.");
+    console.error("Please ensure the variable contains valid JSON.");
+    console.error("Tip: Copy the entire contents of the file and wrap it in single quotes in your .env.local file.");
+    console.error("Original error:", error.message);
+    console.error("================================================================");
+    throw new Error(`Failed to initialize Firebase Admin. Check your environment variable. Original error: ${error.message}`);
   }
 }
 
