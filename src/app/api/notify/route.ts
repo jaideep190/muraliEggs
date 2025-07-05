@@ -6,13 +6,10 @@ import admin from 'firebase-admin';
 
 export async function POST(req: NextRequest) {
   try {
-    // This will throw a specific error if the admin credentials in .env.local are bad
     if (!firebaseAdminApp) {
-      // This should be caught by the initialization logic, but as a safeguard:
       throw new Error('Firebase Admin SDK failed to initialize. Check server logs for details.');
     }
     
-    // Log the project ID the SDK is using for debugging purposes
     const configuredProjectId = firebaseAdminApp.options.projectId;
     console.log(`[API/NOTIFY] Firebase Admin SDK initialized for project: ${configuredProjectId}`);
     if (!configuredProjectId) {
@@ -29,14 +26,14 @@ export async function POST(req: NextRequest) {
     const tokenDoc = await tokenDocRef.get();
 
     if (!tokenDoc.exists) {
-      return NextResponse.json({ success: false, message: 'No FCM token found for user.' }, { status: 404 });
+      return NextResponse.json({ success: false, details: 'No FCM token found for user.' }, { status: 404 });
     }
 
     const data = tokenDoc.data();
     const tokens = data?.tokens;
 
     if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
-      return NextResponse.json({ success: false, message: 'No FCM tokens found for user.' }, { status: 404 });
+      return NextResponse.json({ success: false, details: 'No FCM tokens found for user.' }, { status: 404 });
     }
 
     const message: admin.messaging.MulticastMessage = {
@@ -81,13 +78,14 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('[API/NOTIFY] An unhandled error occurred:', error);
+    
+    const configuredProjectId = firebaseAdminApp?.options?.projectId || 'Not Available';
     let errorDetails = error.message || 'An unknown error occurred.';
 
-    // Check for the specific 404 error from the log
-    if (error.message && error.message.includes('Error 404 (Not Found)')) {
-        errorDetails = 'The FCM server returned a 404 Not Found error. This strongly indicates a mismatch between your service account Project ID and the project where the FCM API is enabled. Please verify your GOOGLE_APPLICATION_CREDENTIALS_JSON in .env.local.';
-    } else if (error.message.includes('GOOGLE_APPLICATION_CREDENTIALS_JSON')) {
-        errorDetails = 'Firebase Admin Configuration Error. Check the server logs for more details on your GOOGLE_APPLICATION_CREDENTIALS_JSON variable.';
+    if (error.message?.includes('404')) {
+        errorDetails = `The FCM server returned a 404 Not Found error. This strongly indicates a mismatch between the Project ID your server is using ('${configuredProjectId}') and the project where the FCM API is enabled. Please ensure your 'credentials.json' file is from the correct Firebase project ('muralieggs-d67b5').`;
+    } else if (error.message?.includes('credentials.json')) {
+        errorDetails = `Firebase Admin Configuration Error. Please ensure 'credentials.json' is in the project root and is a valid service account file.`;
     }
 
     return NextResponse.json({ error: 'Internal Server Error', details: errorDetails }, { status: 500 });
