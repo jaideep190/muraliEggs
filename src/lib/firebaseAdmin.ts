@@ -18,13 +18,18 @@ function initializeFirebaseAdmin() {
   try {
     const serviceAccount = JSON.parse(serviceAccountJson);
     
+    // Add a check for the project_id to give a better error message.
+    if (!serviceAccount.project_id) {
+        throw new Error("The 'project_id' is missing from your service account JSON. Please re-download the file from Firebase.");
+    }
+
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: serviceAccount.project_id,
     });
   } catch (error: any)
   {
-    const errorMessage = `Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's a valid, single-line JSON string in your .env.local file. Original error: ${error.message}`;
+    const errorMessage = `Failed to parse or initialize with GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's a valid JSON string in your .env.local file. Original error: ${error.message}`;
     console.error(`ERROR: ${errorMessage}`);
     throw new Error(errorMessage);
   }

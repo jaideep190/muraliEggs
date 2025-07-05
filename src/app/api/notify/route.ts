@@ -8,7 +8,15 @@ export async function POST(req: NextRequest) {
   try {
     // This will throw a specific error if the admin credentials in .env.local are bad
     if (!firebaseAdminApp) {
-      throw new Error('Firebase Admin SDK failed to initialize.');
+      // This should be caught by the initialization logic, but as a safeguard:
+      throw new Error('Firebase Admin SDK failed to initialize. Check server logs for details.');
+    }
+    
+    // Log the project ID the SDK is using for debugging purposes
+    const configuredProjectId = firebaseAdminApp.options.projectId;
+    console.log(`[API/NOTIFY] Firebase Admin SDK initialized for project: ${configuredProjectId}`);
+    if (!configuredProjectId) {
+      console.error("[API/NOTIFY] CRITICAL: Firebase Admin SDK is missing Project ID in its configuration.");
     }
 
     const { userId, orderId, status } = await req.json();
@@ -43,14 +51,16 @@ export async function POST(req: NextRequest) {
         }
       }
     };
-
+    
+    console.log(`[API/NOTIFY] Attempting to send notification to ${tokens.length} token(s) for user ${userId}.`);
     const response = await admin.messaging().sendMulticast(message);
+    console.log(`[API/NOTIFY] Successfully sent multicast message. Success: ${response.successCount}, Failure: ${response.failureCount}`);
     
     const tokensToRemove: string[] = [];
     response.responses.forEach((result, index) => {
       if (!result.success) {
         const error = result.error;
-        console.error('Failure sending notification to', tokens[index], error);
+        console.error('[API/NOTIFY] Failure sending notification to', tokens[index], error);
         if (error && (
             error.code === 'messaging/invalid-registration-token' ||
             error.code === 'messaging/registration-token-not-registered'
@@ -64,17 +74,22 @@ export async function POST(req: NextRequest) {
       await tokenDocRef.update({
         tokens: admin.firestore.FieldValue.arrayRemove(...tokensToRemove),
       });
-      console.log('Removed invalid tokens:', tokensToRemove);
+      console.log('[API/NOTIFY] Removed invalid tokens:', tokensToRemove);
     }
     
     return NextResponse.json({ success: true, sent: response.successCount, failed: response.failureCount });
 
   } catch (error: any) {
-    console.error('Error in /api/notify:', error);
-    // Provide a more specific error message if it's a known initialization issue.
-    if (error.message.includes('GOOGLE_APPLICATION_CREDENTIALS_JSON')) {
-        return NextResponse.json({ error: 'Firebase Admin Configuration Error', details: error.message }, { status: 500 });
+    console.error('[API/NOTIFY] An unhandled error occurred:', error);
+    let errorDetails = error.message || 'An unknown error occurred.';
+
+    // Check for the specific 404 error from the log
+    if (error.message && error.message.includes('Error 404 (Not Found)')) {
+        errorDetails = 'The FCM server returned a 404 Not Found error. This strongly indicates a mismatch between your service account Project ID and the project where the FCM API is enabled. Please verify your GOOGLE_APPLICATION_CREDENTIALS_JSON in .env.local.';
+    } else if (error.message.includes('GOOGLE_APPLICATION_CREDENTIALS_JSON')) {
+        errorDetails = 'Firebase Admin Configuration Error. Check the server logs for more details on your GOOGLE_APPLICATION_CREDENTIALS_JSON variable.';
     }
-    return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+
+    return NextResponse.json({ error: 'Internal Server Error', details: errorDetails }, { status: 500 });
   }
 }
