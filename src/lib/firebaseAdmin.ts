@@ -1,5 +1,7 @@
 // src/lib/firebaseAdmin.ts
 import admin from 'firebase-admin';
+import path from 'path';
+import fs from 'fs';
 
 function initializeFirebaseAdmin() {
   // Prevent re-initialization
@@ -7,20 +9,21 @@ function initializeFirebaseAdmin() {
     return admin.app();
   }
 
-  const serviceAccountJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  // The path to the credentials file, assuming it's in the project root
+  const serviceAccountPath = path.resolve(process.cwd(), 'credentials.json');
 
-  if (!serviceAccountJson) {
-    const errorMessage = 'Firebase Admin SDK credentials environment variable not set. GOOGLE_APPLICATION_CREDENTIALS_JSON is missing from your .env.local file.';
+  if (!fs.existsSync(serviceAccountPath)) {
+    const errorMessage = `Firebase Admin SDK credentials file not found. Please ensure 'credentials.json' is in the root directory of your project.`;
     console.error(`ERROR: ${errorMessage}`);
     throw new Error(errorMessage);
   }
 
   try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
     
     // Add a check for the project_id to give a better error message.
     if (!serviceAccount.project_id) {
-        throw new Error("The 'project_id' is missing from your service account JSON. Please re-download the file from Firebase.");
+        throw new Error("The 'project_id' is missing from your credentials.json file. Please re-download the file from Firebase.");
     }
 
     return admin.initializeApp({
@@ -29,7 +32,7 @@ function initializeFirebaseAdmin() {
     });
   } catch (error: any)
   {
-    const errorMessage = `Failed to parse or initialize with GOOGLE_APPLICATION_CREDENTIALS_JSON. Please ensure it's a valid JSON string in your .env.local file. Original error: ${error.message}`;
+    const errorMessage = `Failed to parse or initialize with credentials.json. Please ensure it's a valid JSON file. Original error: ${error.message}`;
     console.error(`ERROR: ${errorMessage}`);
     throw new Error(errorMessage);
   }
