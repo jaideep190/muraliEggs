@@ -158,14 +158,22 @@ export default function AdminDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, orderId, status }),
       });
-      const result = await response.json();
-      if (!response.ok || result.error) {
-        throw new Error(result.message || 'Failed to send notification');
+
+      const contentType = response.headers.get("content-type");
+      if (response.ok && contentType && contentType.includes("application/json")) {
+        const result = await response.json();
+        if (result.error) {
+           throw new Error(result.message || result.error || 'Failed to send notification');
+        }
+         toast({
+            title: 'Notification Sent',
+            description: `User has been notified. Sent: ${result.sent}, Failed: ${result.failed}.`,
+        });
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to send notification. Server response:', errorText);
+        throw new Error('Server returned an error. This might be due to a configuration issue with your Firebase credentials.');
       }
-      toast({
-        title: 'Notification Sent',
-        description: `User has been notified about order status: ${status}.`,
-      });
     } catch (error: any) {
       toast({
         variant: 'destructive',
