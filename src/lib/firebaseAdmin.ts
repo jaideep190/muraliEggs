@@ -1,7 +1,5 @@
 // src/lib/firebaseAdmin.ts
 import admin from 'firebase-admin';
-import path from 'path';
-import fs from 'fs';
 
 function initializeFirebaseAdmin() {
   // Prevent re-initialization
@@ -9,30 +7,29 @@ function initializeFirebaseAdmin() {
     return admin.app();
   }
 
-  // The path to the credentials file, assuming it's in the project root
-  const serviceAccountPath = path.resolve(process.cwd(), 'credentials.json');
+  // Construct credentials from environment variables
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
-  if (!fs.existsSync(serviceAccountPath)) {
-    const errorMessage = `Firebase Admin SDK credentials file not found. Please ensure 'credentials.json' is in the root directory of your project.`;
+  if (!projectId || !privateKey || !clientEmail) {
+    const errorMessage = `Firebase Admin SDK configuration error. Please ensure FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, and FIREBASE_CLIENT_EMAIL are set in your .env.local file.`;
     console.error(`ERROR: ${errorMessage}`);
     throw new Error(errorMessage);
   }
 
   try {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    
-    // Add a check for the project_id to give a better error message.
-    if (!serviceAccount.project_id) {
-        throw new Error("The 'project_id' is missing from your credentials.json file. Please re-download the file from Firebase.");
-    }
-
     return admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: serviceAccount.project_id,
+      credential: admin.credential.cert({
+        projectId,
+        privateKey,
+        clientEmail,
+      }),
+      projectId: projectId,
     });
   } catch (error: any)
   {
-    const errorMessage = `Failed to parse or initialize with credentials.json. Please ensure it's a valid JSON file. Original error: ${error.message}`;
+    const errorMessage = `Failed to initialize Firebase Admin SDK with the provided environment variables. Please check their values. Original error: ${error.message}`;
     console.error(`ERROR: ${errorMessage}`);
     throw new Error(errorMessage);
   }

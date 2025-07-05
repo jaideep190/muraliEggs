@@ -7,13 +7,9 @@ import admin from 'firebase-admin';
 export async function POST(req: NextRequest) {
   try {
     if (!firebaseAdminApp) {
+      // This case should ideally not be hit if initialization fails, as it would throw an error.
+      // But as a safeguard:
       throw new Error('Firebase Admin SDK failed to initialize. Check server logs for details.');
-    }
-    
-    const configuredProjectId = firebaseAdminApp.options.projectId;
-    console.log(`[API/NOTIFY] Firebase Admin SDK initialized for project: ${configuredProjectId}`);
-    if (!configuredProjectId) {
-      console.error("[API/NOTIFY] CRITICAL: Firebase Admin SDK is missing Project ID in its configuration.");
     }
 
     const { userId, orderId, status } = await req.json();
@@ -49,9 +45,7 @@ export async function POST(req: NextRequest) {
       }
     };
     
-    console.log(`[API/NOTIFY] Attempting to send notification to ${tokens.length} token(s) for user ${userId}.`);
     const response = await admin.messaging().sendMulticast(message);
-    console.log(`[API/NOTIFY] Successfully sent multicast message. Success: ${response.successCount}, Failure: ${response.failureCount}`);
     
     const tokensToRemove: string[] = [];
     response.responses.forEach((result, index) => {
@@ -79,13 +73,11 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('[API/NOTIFY] An unhandled error occurred:', error);
     
-    const configuredProjectId = firebaseAdminApp?.options?.projectId || 'Not Available';
     let errorDetails = error.message || 'An unknown error occurred.';
 
-    if (error.message?.includes('404')) {
-        errorDetails = `The FCM server returned a 404 Not Found error. Your server is correctly using Project ID '${configuredProjectId}', but the Firebase Cloud Messaging API is likely disabled for this project. Please go to the Google Cloud Console for your project and ensure it is enabled.`;
-    } else if (error.message?.includes('credentials.json')) {
-        errorDetails = `Firebase Admin Configuration Error. Please ensure 'credentials.json' is in the project root and is a valid service account file.`;
+    // This error indicates the API is likely disabled in the Google Cloud Console.
+    if (error.code === 'messaging/authentication-error') {
+        errorDetails = `Authentication failed with Firebase Cloud Messaging. This often means the FCM API is disabled for your project. Please go to the Google Cloud Console for your project ('${firebaseAdminApp?.options?.projectId}') and ensure it is enabled.`;
     }
 
     return NextResponse.json({ error: 'Internal Server Error', details: errorDetails }, { status: 500 });
