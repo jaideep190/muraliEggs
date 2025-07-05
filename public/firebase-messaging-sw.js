@@ -1,10 +1,10 @@
 // public/firebase-messaging-sw.js
+import { initializeApp } from 'firebase/app';
+import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
 
-// Using compat scripts for service worker simplicity as recommended for background tasks.
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+// IMPORTANT: This file must be in the `public` directory.
 
-// IMPORTANT: This config must match your client-side config
+// This config can be sourced from a separate file or environment variables
 const firebaseConfig = {
   apiKey: "AIzaSyCXqUU7PErk_vdkVzlwY2zUa3gg4Be6yyY",
   authDomain: "muralieggs-d67b5.firebaseapp.com",
@@ -12,23 +12,21 @@ const firebaseConfig = {
   storageBucket: "muralieggs-d67b5.firebasestorage.app",
   messagingSenderId: "863297401918",
   appId: "1:863297401918:web:5e4d70f187214c7e318d6f",
+  measurementId: "G-VRXPL6SMGG"
 };
 
-firebase.initializeApp(firebaseConfig);
+initializeApp(firebaseConfig);
 
-const messaging = firebase.messaging();
+const messaging = getMessaging();
 
-// This handler will be triggered when the app is in the background or closed.
-messaging.onBackgroundMessage(function(payload) {
-  console.log('[firebase-messaging-sw.js] Received background message: ', payload);
-  
-  if (payload.notification) {
-      const notificationTitle = payload.notification.title;
-      const notificationOptions = {
-        body: payload.notification.body,
-        icon: payload.notification.icon || '/favicon.ico' // Use sent icon or a default
-      };
+onBackgroundMessage(messaging, (payload) => {
+  console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
-      self.registration.showNotification(notificationTitle, notificationOptions);
-  }
+  const notificationTitle = payload.notification.title;
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/icon-192x192.png' // Ensure you have this icon in your /public directory
+  };
+
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });

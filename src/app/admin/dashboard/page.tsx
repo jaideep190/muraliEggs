@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Package, Power, Settings, LogOut, DollarSign, CalendarDays, BarChart, ShoppingBag, LayoutGrid, Search, Truck } from 'lucide-react';
+import { Package, Power, Settings, LogOut, DollarSign, CalendarDays, BarChart, ShoppingBag, LayoutGrid, Search, Truck, BellRing, Loader2 } from 'lucide-react';
 import { db, auth } from '@/lib/firebase';
 import { collection, doc, onSnapshot, updateDoc, setDoc, query, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +56,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState('');
+  const [notifyingStates, setNotifyingStates] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     if (!user) return;
@@ -148,6 +149,33 @@ export default function AdminDashboardPage() {
       });
     }
   };
+  
+  const handleNotify = async (orderId: string, userId: string, status: string) => {
+    setNotifyingStates(prev => ({ ...prev, [orderId]: true }));
+    try {
+      const response = await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, orderId, status }),
+      });
+      const result = await response.json();
+      if (!response.ok || result.error) {
+        throw new Error(result.message || 'Failed to send notification');
+      }
+      toast({
+        title: 'Notification Sent',
+        description: `User has been notified about order status: ${status}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Notification Failed',
+        description: error.message,
+      });
+    } finally {
+      setNotifyingStates(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
 
   const handleSaveSettings = async () => {
     setIsSaving(true);
@@ -201,7 +229,7 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 p-4 sm:p-8">
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-3 gap-2 mb-6">
+          <TabsList className="mb-6 grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
             <TabsTrigger value="dashboard"><BarChart className="mr-2 h-4 w-4"/>Dashboard</TabsTrigger>
             <TabsTrigger value="orders"><ShoppingBag className="mr-2 h-4 w-4"/>Orders</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="mr-2 h-4 w-4"/>Settings</TabsTrigger>
@@ -319,21 +347,33 @@ export default function AdminDashboardPage() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={order.status}
-                              onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
-                            >
-                              <SelectTrigger className="w-full sm:w-[180px]">
-                                <SelectValue placeholder="Update status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Requested">Requested</SelectItem>
-                                <SelectItem value="Confirmed">Confirmed</SelectItem>
-                                <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
-                                <SelectItem value="Delivered">Delivered</SelectItem>
-                                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={order.status}
+                                onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
+                              >
+                                <SelectTrigger className="w-full sm:w-[160px]">
+                                  <SelectValue placeholder="Update status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Requested">Requested</SelectItem>
+                                  <SelectItem value="Confirmed">Confirmed</SelectItem>
+                                  <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
+                                  <SelectItem value="Delivered">Delivered</SelectItem>
+                                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                </SelectContent>
+                              </Select>
+                               <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleNotify(order.id, order.userId, order.status)}
+                                disabled={notifyingStates[order.id] || !order.userId}
+                                aria-label="Notify user"
+                                title="Notify user of status change"
+                              >
+                                {notifyingStates[order.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )) : (
