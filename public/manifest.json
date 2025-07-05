@@ -1,0 +1,9 @@
+{
+  "name": "Eggcellent Delivery",
+  "short_name": "Eggcellent",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDF8E4",
+  "theme_color": "#FF9F1C",
+  "gcm_sender_id": "103953800507"
+}
