@@ -159,12 +159,9 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ userId, orderId, status }),
       });
 
-      // Try to parse the response as JSON regardless of status,
-      // as our API route now sends detailed JSON errors.
       const result = await response.json();
 
       if (!response.ok) {
-        // If the response is not OK, throw an error with the detailed message from the API.
         throw new Error(result.details || result.error || 'An unknown server error occurred.');
       }
       
@@ -174,7 +171,6 @@ export default function AdminDashboardPage() {
       });
 
     } catch (error: any) {
-      // Catch network errors or errors from the throw statement above.
       toast({
         variant: 'destructive',
         title: 'Notification Failed',

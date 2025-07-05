@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     let errorDetails = error.message || 'An unknown error occurred.';
 
     if (error.message?.includes('404')) {
-        errorDetails = `The FCM server returned a 404 Not Found error. This strongly indicates a mismatch between the Project ID your server is using ('${configuredProjectId}') and the project where the FCM API is enabled. Please ensure your 'credentials.json' file is from the correct Firebase project ('muralieggs-d67b5').`;
+        errorDetails = `The FCM server returned a 404 Not Found error. Your server is correctly using Project ID '${configuredProjectId}', but the Firebase Cloud Messaging API is likely disabled for this project. Please go to the Google Cloud Console for your project and ensure it is enabled.`;
     } else if (error.message?.includes('credentials.json')) {
         errorDetails = `Firebase Admin Configuration Error. Please ensure 'credentials.json' is in the project root and is a valid service account file.`;
     }
