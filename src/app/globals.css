@@ -924,7 +924,7 @@
   100% { background-position: 100% 50%; }
 }
 
-/* Media Queries for Responsive Animations */
+/* Media Querie for Responsive Animations */
 @media (max-width: 768px) {
   .product-card:hover {
     transform: translateY(-5px);
