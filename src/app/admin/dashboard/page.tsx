@@ -13,7 +13,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Package, Power, Settings, LogOut, DollarSign, CalendarDays, BarChart, ShoppingBag, LayoutGrid, Search, Truck, BellRing, Loader2 } from 'lucide-react';
 import { db, auth } from '@/lib/firebase';
-import { collection, doc, onSnapshot, updateDoc, setDoc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, onSnapshot, updateDoc, setDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
@@ -21,6 +21,7 @@ import { format, subDays } from 'date-fns';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 import { TooltipProvider, Tooltip as ShadTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 type Order = {
@@ -59,6 +60,11 @@ export default function AdminDashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [searchTerm, setSearchTerm] = useState('');
   const [notifyingStates, setNotifyingStates] = useState<{ [key: string]: boolean }>({});
+  
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [isBulkNotifying, setIsBulkNotifying] = useState(false);
+
 
   useEffect(() => {
     if (!user) return;
@@ -134,6 +140,109 @@ export default function AdminDashboardPage() {
       order.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [orders, searchTerm]);
+  
+  useEffect(() => {
+    setSelectedOrders([]);
+  }, [searchTerm]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(filteredOrders.map(o => o.id));
+    } else {
+      setSelectedOrders([]);
+    }
+  };
+
+  const handleSelectOrder = (orderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(prev => [...prev, orderId]);
+    } else {
+      setSelectedOrders(prev => prev.filter(id => id !== orderId));
+    }
+  };
+
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (!newStatus || selectedOrders.length === 0) return;
+    setIsBulkUpdating(true);
+    
+    const batch = writeBatch(db);
+    selectedOrders.forEach(orderId => {
+      const orderRef = doc(db, 'orders', orderId);
+      batch.update(orderRef, { status: newStatus });
+    });
+
+    try {
+      await batch.commit();
+      toast({
+        title: 'Bulk Update Successful',
+        description: `${selectedOrders.length} orders updated to ${newStatus}.`
+      });
+      setSelectedOrders([]);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Bulk Update Failed',
+        description: 'Could not update all selected orders.'
+      });
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleBulkNotify = async () => {
+    if (selectedOrders.length === 0) return;
+    setIsBulkNotifying(true);
+
+    const notifications = selectedOrders
+      .map(orderId => {
+        const order = orders.find(o => o.id === orderId);
+        if (order && order.userId) {
+          return { userId: order.userId, orderId: order.id, status: order.status };
+        }
+        return null;
+      })
+      .filter((n): n is { userId: string; orderId: string; status: string } => n !== null);
+
+    if (notifications.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'No users to notify',
+        description: 'None of the selected orders have an associated user.'
+      });
+      setIsBulkNotifying(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/notify-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifications }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.details || result.error || 'An unknown server error occurred.');
+      }
+
+      toast({
+        title: 'Bulk Notifications Sent',
+        description: `Attempted to notify ${notifications.length} users. Success: ${result.totalSent}, Failed: ${result.totalFailed}.`
+      });
+      setSelectedOrders([]);
+
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Bulk Notification Failed',
+        description: error.message,
+      });
+    } finally {
+      setIsBulkNotifying(false);
+    }
+  };
+
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const orderDocRef = doc(db, 'orders', orderId);
@@ -323,6 +432,36 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                {selectedOrders.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-4 p-3 mt-4 -mx-6 bg-muted">
+                    <span className="text-sm font-medium">{selectedOrders.length} selected</span>
+                    <div className="flex items-center gap-2">
+                      <Select onValueChange={handleBulkStatusChange} disabled={isBulkUpdating}>
+                        <SelectTrigger className="w-auto sm:w-[180px] h-9">
+                          <SelectValue placeholder="Change status..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Requested">Requested</SelectItem>
+                            <SelectItem value="Confirmed">Confirmed</SelectItem>
+                            <SelectItem value="Out for Delivery">Out for Delivery</SelectItem>
+                            <SelectItem value="Delivered">Delivered</SelectItem>
+                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {isBulkUpdating && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={handleBulkNotify} disabled={isBulkNotifying}>
+                            <BellRing className="mr-2 h-4 w-4"/>
+                            Notify Users
+                        </Button>
+                        {isBulkNotifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                    </div>
+                    <div className="ml-auto">
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedOrders([])}>Clear selection</Button>
+                    </div>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -330,6 +469,19 @@ export default function AdminDashboardPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Checkbox
+                             checked={
+                                selectedOrders.length === filteredOrders.length && filteredOrders.length > 0
+                                  ? true
+                                  : selectedOrders.length > 0
+                                  ? 'indeterminate'
+                                  : false
+                              }
+                            onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                            aria-label="Select all"
+                          />
+                        </TableHead>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Quantity</TableHead>
@@ -340,7 +492,14 @@ export default function AdminDashboardPage() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
+                        <TableRow key={order.id} data-state={selectedOrders.includes(order.id) && "selected"}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedOrders.includes(order.id)}
+                              onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
+                              aria-label={`Select order ${order.id}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
                           <TableCell>
                             <div className="font-medium">{order.customerName}</div>
@@ -391,7 +550,7 @@ export default function AdminDashboardPage() {
                         </TableRow>
                       )) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center h-24">No orders found.</TableCell>
+                          <TableCell colSpan={7} className="text-center h-24">No orders found.</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
