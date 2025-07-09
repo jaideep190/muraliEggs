@@ -30,30 +30,36 @@ type Order = {
   paymentMethod: 'COD' | 'UPI';
 };
 
-const statusImages: { [key: string]: { src: string; alt: string } } = {
+const statusImages: { [key: string]: { src: string; alt: string; hint: string; } } = {
   Requested: {
     src: '/images/requested.png',
     alt: 'Illustration of an order being requested, showing a shopping cart.',
+    hint: 'order requested'
   },
   Confirmed: {
     src: '/images/confirmed.png',
     alt: 'Illustration of an egg carton being prepared for shipment.',
+    hint: 'order confirmed'
   },
   'Out for Delivery': {
     src: '/images/delivering.png',
     alt: 'Illustration of a delivery truck on the road.',
+    hint: 'delivery truck'
   },
   Delivered: {
     src: '/images/delivered.png',
     alt: 'Illustration of a package delivered to a home.',
+    hint: 'package delivered'
   },
   Cancelled: {
     src: '/images/cancelled.png',
     alt: 'Illustration representing a cancelled order.',
+    hint: 'order cancelled'
   },
   default: {
     src: '/images/requested.png',
     alt: 'Map showing a generic delivery route.',
+    hint: 'delivery route'
   },
 };
 
@@ -118,6 +124,7 @@ function OrderTrackerCard({ order }: { order: Order }) {
             fill
             sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
+            data-ai-hint={imageInfo.hint}
           />
         </div>
       </CardContent>
