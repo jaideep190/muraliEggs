@@ -30,36 +30,30 @@ type Order = {
   paymentMethod: 'COD' | 'UPI';
 };
 
-const statusImages: { [key: string]: { src: string; alt: string; hint: string } } = {
+const statusImages: { [key: string]: { src: string; alt: string } } = {
   Requested: {
-    src: '/images/requested.png', // Using your custom image
+    src: '/images/requested.png',
     alt: 'Illustration of an order being requested, showing a shopping cart.',
-    hint: 'order processing',
   },
   Confirmed: {
-    src: 'https://placehold.co/600x400.png',
+    src: '/images/confirmed.png',
     alt: 'Illustration of an egg carton being prepared for shipment.',
-    hint: 'egg carton',
   },
   'Out for Delivery': {
-    src: 'https://placehold.co/600x400.png',
+    src: '/images/delivering.png',
     alt: 'Illustration of a delivery truck on the road.',
-    hint: 'delivery truck',
   },
   Delivered: {
-    src: 'https://placehold.co/600x400.png',
+    src: '/images/delivered.png',
     alt: 'Illustration of a package delivered to a home.',
-    hint: 'delivered package',
   },
   Cancelled: {
-    src: 'https://placehold.co/600x400.png',
+    src: '/images/cancelled.png',
     alt: 'Illustration representing a cancelled order.',
-    hint: 'cancelled stamp',
   },
   default: {
-    src: 'https://placehold.co/600x400.png',
+    src: '/images/requested.png',
     alt: 'Map showing a generic delivery route.',
-    hint: 'map route',
   },
 };
 
@@ -121,10 +115,8 @@ function OrderTrackerCard({ order }: { order: Order }) {
            <Image
             src={imageInfo.src}
             alt={imageInfo.alt}
-            width={600}
-            height={400}
+            layout="fill"
             className="object-cover"
-            data-ai-hint={imageInfo.hint}
           />
         </div>
       </CardContent>
