@@ -80,6 +80,7 @@ function OrderTrackerCard({ order }: { order: Order }) {
         <CardContent className="space-y-4 text-center">
             <div className="relative h-48 w-full overflow-hidden rounded-lg">
                 <Image
+                    key={imageInfo.src}
                     src={imageInfo.src}
                     alt={imageInfo.alt}
                     fill
@@ -151,6 +152,7 @@ function OrderTrackerCard({ order }: { order: Order }) {
         </div>
         <div className="relative h-48 w-full overflow-hidden rounded-lg">
            <Image
+            key={imageInfo.src}
             src={imageInfo.src}
             alt={imageInfo.alt}
             fill
