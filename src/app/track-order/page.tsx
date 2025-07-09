@@ -29,9 +29,43 @@ type Order = {
   paymentMethod: 'COD' | 'UPI';
 };
 
+const statusImages: { [key: string]: { src: string; alt: string; hint: string } } = {
+  Requested: {
+    src: 'https://placehold.co/600x400.png',
+    alt: 'Illustration of an order being requested, showing a shopping cart.',
+    hint: 'order processing',
+  },
+  Confirmed: {
+    src: 'https://placehold.co/600x400.png',
+    alt: 'Illustration of an egg carton being prepared for shipment.',
+    hint: 'egg carton',
+  },
+  'Out for Delivery': {
+    src: 'https://placehold.co/600x400.png',
+    alt: 'Illustration of a delivery truck on the road.',
+    hint: 'delivery truck',
+  },
+  Delivered: {
+    src: 'https://placehold.co/600x400.png',
+    alt: 'Illustration of a package delivered to a home.',
+    hint: 'delivered package',
+  },
+  Cancelled: {
+    src: 'https://placehold.co/600x400.png',
+    alt: 'Illustration representing a cancelled order.',
+    hint: 'cancelled stamp',
+  },
+  default: {
+    src: 'https://placehold.co/600x400.png',
+    alt: 'Map showing a generic delivery route.',
+    hint: 'map route',
+  },
+};
+
 function OrderTrackerCard({ order }: { order: Order }) {
   const currentStepIndex = trackingSteps.findIndex(step => step.status === order.status);
   const progressPercentage = currentStepIndex >= 0 ? (currentStepIndex / (trackingSteps.length - 1)) * 100 : 0;
+  const imageInfo = statusImages[order.status] || statusImages.default;
 
   return (
     <Card className="mb-6 opacity-0 animate-fade-in-up">
@@ -84,11 +118,11 @@ function OrderTrackerCard({ order }: { order: Order }) {
         </div>
         <div className="relative h-48 w-full overflow-hidden rounded-lg">
            <Image
-            src="https://placehold.co/600x400.png"
-            alt="Map showing delivery route"
+            src={imageInfo.src}
+            alt={imageInfo.alt}
             layout="fill"
             objectFit="cover"
-            data-ai-hint="map route"
+            data-ai-hint={imageInfo.hint}
           />
         </div>
       </CardContent>
