@@ -22,7 +22,7 @@ import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, Cartesi
 import { ChartContainer } from '@/components/ui/chart';
 import { TooltipProvider, Tooltip as ShadTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
 type Order = {
@@ -89,6 +89,7 @@ export default function AdminDashboardPage() {
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
   const [isBulkNotifying, setIsBulkNotifying] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
 
   useEffect(() => {
@@ -770,7 +771,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex min-h-screen w-full flex-col">
       <header className="sticky top-0 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 z-20">
-          <Sheet>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                   <Button
                       variant="outline"
@@ -781,21 +782,24 @@ export default function AdminDashboardPage() {
                       <span className="sr-only">Toggle navigation menu</span>
                   </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col">
-                  <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                      <div className="flex items-center gap-2 font-semibold">
+              <SheetContent side="left" className="flex flex-col p-0">
+                  <SheetHeader className="border-b px-4 py-3 lg:px-6">
+                      <SheetTitle className="flex items-center gap-2 text-base font-semibold">
                           <LayoutGrid className="h-6 w-6 text-primary" />
-                          <span>Admin Panel</span>
-                      </div>
-                  </div>
-                  <div className="mt-5 flex-1">
-                    <nav className="grid items-start gap-2 px-2 text-sm font-medium lg:px-4">
+                          Admin Panel
+                      </SheetTitle>
+                  </SheetHeader>
+                  <div className="flex-1 overflow-y-auto">
+                    <nav className="grid items-start gap-2 px-2 py-4 text-sm font-medium lg:px-4">
                         {navItems.map(item => {
                             const Icon = item.icon;
                             return (
                                 <button
                                     key={item.id}
-                                    onClick={() => setActiveView(item.id)}
+                                    onClick={() => {
+                                        setActiveView(item.id);
+                                        setIsSheetOpen(false);
+                                    }}
                                     className={cn(
                                         "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                                         activeView === item.id && "bg-muted text-primary"
