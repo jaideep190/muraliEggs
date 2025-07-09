@@ -32,32 +32,32 @@ type Order = {
 
 const statusImages: { [key: string]: { src: string; alt: string; hint: string } } = {
   Requested: {
-    src: '/images/requested.png',
+    src: '/images/requested.png', // Using your custom image
     alt: 'Illustration of an order being requested, showing a shopping cart.',
     hint: 'order processing',
   },
   Confirmed: {
-    src: '/images/confirmed.png',
+    src: 'https://placehold.co/600x400.png',
     alt: 'Illustration of an egg carton being prepared for shipment.',
     hint: 'egg carton',
   },
   'Out for Delivery': {
-    src: '/images/delivering.png',
+    src: 'https://placehold.co/600x400.png',
     alt: 'Illustration of a delivery truck on the road.',
     hint: 'delivery truck',
   },
   Delivered: {
-    src: '/images/delivered.png',
+    src: 'https://placehold.co/600x400.png',
     alt: 'Illustration of a package delivered to a home.',
     hint: 'delivered package',
   },
   Cancelled: {
-    src: '/images/cancelled.png',
+    src: 'https://placehold.co/600x400.png',
     alt: 'Illustration representing a cancelled order.',
     hint: 'cancelled stamp',
   },
   default: {
-    src: '/images/default.png',
+    src: 'https://placehold.co/600x400.png',
     alt: 'Map showing a generic delivery route.',
     hint: 'map route',
   },
@@ -121,8 +121,9 @@ function OrderTrackerCard({ order }: { order: Order }) {
            <Image
             src={imageInfo.src}
             alt={imageInfo.alt}
-            layout="fill"
-            objectFit="cover"
+            width={600}
+            height={400}
+            className="object-cover"
             data-ai-hint={imageInfo.hint}
           />
         </div>

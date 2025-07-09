@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -147,11 +148,12 @@ export default function Home() {
         <div className="relative mb-8 w-full max-w-lg">
           <div className="rounded-lg shadow-2xl shadow-black/10 dark:shadow-black/50">
             <Image
-              src="/images/hero-eggs.png"
+              src="https://placehold.co/600x400.png"
               alt="A basket of fresh brown eggs"
               width={600}
               height={400}
               className="rounded-lg object-cover"
+              data-ai-hint="fresh eggs"
               priority
             />
           </div>
