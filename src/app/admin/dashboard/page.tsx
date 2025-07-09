@@ -766,82 +766,91 @@ export default function AdminDashboardPage() {
       </div>
     );
   }
-  
-  const NavLinks = () => (
-    <nav className="grid items-start gap-2 px-2 text-sm font-medium lg:px-4">
-        {navItems.map(item => {
-            const Icon = item.icon;
-            return (
-                <button
-                    key={item.id}
-                    onClick={() => setActiveView(item.id)}
-                    className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                        activeView === item.id && "bg-muted text-primary"
-                    )}
-                >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                </button>
-            )
-        })}
-    </nav>
-  );
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <div className="hidden border-r bg-muted/40 md:block">
-            <div className="flex h-full max-h-screen flex-col gap-2">
-                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                    <div className="flex items-center gap-2 font-semibold">
-                        <LayoutGrid className="h-6 w-6 text-primary" />
-                        <span>Admin Panel</span>
-                    </div>
-                </div>
-                <div className="flex-1 overflow-auto py-2">
-                   <NavLinks />
-                </div>
-            </div>
+    <div className="flex min-h-screen w-full flex-col">
+      <header className="sticky top-0 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 z-20">
+          <Sheet>
+              <SheetTrigger asChild>
+                  <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 md:hidden"
+                  >
+                      <Menu className="h-5 w-5" />
+                      <span className="sr-only">Toggle navigation menu</span>
+                  </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="flex flex-col">
+                  <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                      <div className="flex items-center gap-2 font-semibold">
+                          <LayoutGrid className="h-6 w-6 text-primary" />
+                          <span>Admin Panel</span>
+                      </div>
+                  </div>
+                  <div className="mt-5 flex-1">
+                    <nav className="grid items-start gap-2 px-2 text-sm font-medium lg:px-4">
+                        {navItems.map(item => {
+                            const Icon = item.icon;
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveView(item.id)}
+                                    className={cn(
+                                        "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                                        activeView === item.id && "bg-muted text-primary"
+                                    )}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {item.label}
+                                </button>
+                            )
+                        })}
+                    </nav>
+                  </div>
+              </SheetContent>
+          </Sheet>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold">{navItems.find(i => i.id === activeView)?.label}</h1>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+          </Button>
+      </header>
+      <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 md:pb-20">
+          {renderActiveView()}
+      </main>
+      <footer className="hidden md:block fixed bottom-0 left-0 right-0 z-10 h-16 border-t bg-background/95 backdrop-blur-sm">
+        <div className="h-full w-full overflow-x-auto whitespace-nowrap">
+            <nav className="flex h-full flex-row items-center justify-center gap-4 px-4 text-sm font-medium">
+                {navItems.map(item => {
+                    const Icon = item.icon;
+                    return (
+                        <TooltipProvider key={item.id}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => setActiveView(item.id)}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center gap-1 rounded-lg text-muted-foreground transition-all h-full w-24 hover:text-primary",
+                                            activeView === item.id && "bg-muted text-primary"
+                                        )}
+                                    >
+                                        <Icon className="h-5 w-5" />
+                                        <span>{item.label}</span>
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{item.label}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )
+                })}
+            </nav>
         </div>
-        <div className="flex flex-col">
-            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="shrink-0 md:hidden"
-                        >
-                            <Menu className="h-5 w-5" />
-                            <span className="sr-only">Toggle navigation menu</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="flex flex-col">
-                        <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                            <div className="flex items-center gap-2 font-semibold">
-                                <LayoutGrid className="h-6 w-6 text-primary" />
-                                <span>Admin Panel</span>
-                            </div>
-                        </div>
-                        <div className="mt-5 flex-1">
-                          <NavLinks />
-                        </div>
-                    </SheetContent>
-                </Sheet>
-                 <div className="w-full flex-1">
-                    {/* You can add a search bar here in the future if needed */}
-                 </div>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Logout
-                </Button>
-            </header>
-            <main className="flex-1 p-4 sm:p-6">
-                {renderActiveView()}
-            </main>
-        </div>
+      </footer>
     </div>
   );
 }
-
-    
