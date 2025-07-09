@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
-import { Package, Power, Settings, LogOut, DollarSign, CalendarDays, BarChart, ShoppingBag, LayoutGrid, Search, Truck, BellRing, Loader2 } from 'lucide-react';
+import { Package, Power, Settings, LogOut, DollarSign, CalendarDays, BarChart, ShoppingBag, LayoutGrid, Search, Truck, BellRing, Loader2, History, Users } from 'lucide-react';
 import { db, auth } from '@/lib/firebase';
 import { collection, doc, onSnapshot, updateDoc, setDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,16 @@ type Order = {
   paymentMethod: 'COD' | 'UPI';
 };
 
+type UserData = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  role: 'user' | 'admin';
+};
+
+
 type Settings = {
   eggPrice: number;
   stockAvailable: boolean;
@@ -53,12 +63,17 @@ type AnalyticsData = {
 export default function AdminDashboardPage() {
   const { user, userData, loading } = useAuthRedirect({ requiredRole: 'admin' });
   const [orders, setOrders] = useState<Order[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [settings, setSettings] = useState<Settings>({ eggPrice: 0.5, stockAvailable: true, availableTrays: 100 });
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  const [activeOrdersSearchTerm, setActiveOrdersSearchTerm] = useState('');
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  
   const [notifyingStates, setNotifyingStates] = useState<{ [key: string]: boolean }>({});
   
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
@@ -89,16 +104,23 @@ export default function AdminDashboardPage() {
       }
     });
 
+    const usersQuery = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+    const unsubscribeUsers = onSnapshot(usersQuery, (snapshot) => {
+      const usersData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as UserData[];
+      setUsers(usersData);
+    });
+
     return () => {
       unsubscribeOrders();
       unsubscribeSettings();
+      unsubscribeUsers();
     };
   }, [user]);
 
   const weeklyAnalytics = useMemo<AnalyticsData>(() => {
     const deliveredOrders = orders.filter(o => o.status === 'Delivered');
     const totalRevenue = deliveredOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-    const pendingOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled').length;
+    const pendingOrders = orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)).length;
 
     const salesLast7Days = Array.from({ length: 7 }).map((_, i) => {
       const date = subDays(new Date(), i);
@@ -134,20 +156,36 @@ export default function AdminDashboardPage() {
     };
   }, [orders, selectedDate]);
   
-  const filteredOrders = useMemo(() => {
+  const filteredActiveOrders = useMemo(() => {
     return orders.filter(order =>
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase())
+      !['Delivered', 'Cancelled'].includes(order.status) &&
+      (order.customerName.toLowerCase().includes(activeOrdersSearchTerm.toLowerCase()) ||
+      order.id.toLowerCase().includes(activeOrdersSearchTerm.toLowerCase()))
     );
-  }, [orders, searchTerm]);
+  }, [orders, activeOrdersSearchTerm]);
+
+  const filteredPastOrders = useMemo(() => {
+    return orders.filter(order =>
+      ['Delivered', 'Cancelled'].includes(order.status) &&
+      (order.customerName.toLowerCase().includes(historySearchTerm.toLowerCase()) ||
+      order.id.toLowerCase().includes(historySearchTerm.toLowerCase()))
+    );
+  }, [orders, historySearchTerm]);
   
+  const filteredUsers = useMemo(() => {
+    return users.filter(user =>
+      user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+    );
+  }, [users, userSearchTerm]);
+
   useEffect(() => {
     setSelectedOrders([]);
-  }, [searchTerm]);
+  }, [activeOrdersSearchTerm]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedOrders(filteredOrders.map(o => o.id));
+      setSelectedOrders(filteredActiveOrders.map(o => o.id));
     } else {
       setSelectedOrders([]);
     }
@@ -344,9 +382,11 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 p-4 sm:p-8">
         <Tabs defaultValue="dashboard">
-          <TabsList className="mb-6 grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-3">
+          <TabsList className="mb-6 grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-5">
             <TabsTrigger value="dashboard"><BarChart className="mr-2 h-4 w-4"/>Dashboard</TabsTrigger>
-            <TabsTrigger value="orders"><ShoppingBag className="mr-2 h-4 w-4"/>Orders</TabsTrigger>
+            <TabsTrigger value="orders"><ShoppingBag className="mr-2 h-4 w-4"/>Active Orders</TabsTrigger>
+            <TabsTrigger value="history"><History className="mr-2 h-4 w-4"/>History</TabsTrigger>
+            <TabsTrigger value="users"><Users className="mr-2 h-4 w-4"/>Users</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="mr-2 h-4 w-4"/>Settings</TabsTrigger>
           </TabsList>
           
@@ -421,15 +461,15 @@ export default function AdminDashboardPage() {
           <TabsContent value="orders">
             <Card>
               <CardHeader>
-                <CardTitle>All Orders</CardTitle>
-                <CardDescription>View, search, and manage all incoming and past orders.</CardDescription>
+                <CardTitle>Active Orders</CardTitle>
+                <CardDescription>View, search, and manage all incoming and processing orders.</CardDescription>
                 <div className="relative pt-4">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Search by name or order ID..."
                     className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    value={activeOrdersSearchTerm}
+                    onChange={(e) => setActiveOrdersSearchTerm(e.target.value)}
                   />
                 </div>
                 {selectedOrders.length > 0 && (
@@ -472,7 +512,7 @@ export default function AdminDashboardPage() {
                         <TableHead className="w-[50px]">
                           <Checkbox
                              checked={
-                                selectedOrders.length === filteredOrders.length && filteredOrders.length > 0
+                                selectedOrders.length === filteredActiveOrders.length && filteredActiveOrders.length > 0
                                   ? true
                                   : selectedOrders.length > 0
                                   ? 'indeterminate'
@@ -491,7 +531,7 @@ export default function AdminDashboardPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOrders.length > 0 ? filteredOrders.map((order) => (
+                      {filteredActiveOrders.length > 0 ? filteredActiveOrders.map((order) => (
                         <TableRow key={order.id} data-state={selectedOrders.includes(order.id) && "selected"}>
                           <TableCell>
                             <Checkbox
@@ -550,12 +590,127 @@ export default function AdminDashboardPage() {
                         </TableRow>
                       )) : (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center h-24">No orders found.</TableCell>
+                          <TableCell colSpan={7} className="text-center h-24">No active orders found.</TableCell>
                         </TableRow>
                       )}
                     </TableBody>
                   </Table>
                   </TooltipProvider>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order History</CardTitle>
+                  <CardDescription>View all completed and cancelled orders.</CardDescription>
+                  <div className="relative pt-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search by name or order ID..."
+                      className="pl-10"
+                      value={historySearchTerm}
+                      onChange={(e) => setHistorySearchTerm(e.target.value)}
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order ID</TableHead>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total Price</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPastOrders.length > 0 ? filteredPastOrders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell className="font-medium">#{order.id.substring(0, 6)}</TableCell>
+                            <TableCell>
+                              <div className="font-medium">{order.customerName}</div>
+                              <div className="hidden text-xs text-muted-foreground sm:block">{order.customerAddress}</div>
+                            </TableCell>
+                            <TableCell>{format(order.createdAt.toDate(), 'PP')}</TableCell>
+                            <TableCell>{order.quantity} eggs</TableCell>
+                            <TableCell>Rs. {order.totalPrice.toFixed(2)}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                order.status === 'Delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 
+                                'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        )) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center h-24">No past orders found.</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <CardTitle>Registered Users</CardTitle>
+                <CardDescription>View all users who have signed up for the service.</CardDescription>
+                <div className="relative pt-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search by name or email..."
+                    className="pl-10"
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Role</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.length > 0 ? filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{user.email}</div>
+                            <div className="text-xs text-muted-foreground">{user.phone}</div>
+                          </TableCell>
+                          <TableCell>{user.address}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                              user.role === 'admin' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300'
+                            }`}>
+                              {user.role}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center h-24">No users found.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 </div>
               </CardContent>
             </Card>
