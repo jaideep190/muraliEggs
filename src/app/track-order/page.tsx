@@ -32,34 +32,29 @@ type Order = {
   userId: string;
 };
 
-const statusImages: { [key: string]: { src: string; alt: string; hint: string; } } = {
+// This object is now just for alt text and AI hints. The src is handled directly in the component.
+const statusInfo: { [key: string]: { alt: string; hint: string; } } = {
   Requested: {
-    src: '/images/requested.png',
     alt: 'Illustration of an order being requested, showing a shopping cart.',
     hint: 'order requested'
   },
   Confirmed: {
-    src: '/images/confirmed.png',
     alt: 'Illustration of an egg carton being prepared for shipment.',
     hint: 'order confirmed'
   },
   'Out for Delivery': {
-    src: '/images/delivering.png',
     alt: 'Illustration of a delivery truck on the road.',
     hint: 'delivery truck'
   },
   Delivered: {
-    src: '/images/delivered.png',
     alt: 'Illustration of a package delivered to a home.',
     hint: 'package delivered'
   },
   Cancelled: {
-    src: '/images/cancelled.png',
     alt: 'Illustration representing a cancelled order.',
     hint: 'order cancelled'
   },
   default: {
-    src: '/images/requested.png',
     alt: 'Map showing a generic delivery route.',
     hint: 'delivery route'
   },
@@ -68,7 +63,32 @@ const statusImages: { [key: string]: { src: string; alt: string; hint: string; }
 function OrderTrackerCard({ order }: { order: Order }) {
   const currentStepIndex = trackingSteps.findIndex(step => step.status === order.status);
   const progressPercentage = order.status === 'Cancelled' ? 0 : (currentStepIndex >= 0 ? (currentStepIndex / (trackingSteps.length - 1)) * 100 : 0);
-  const imageInfo = statusImages[order.status] || statusImages.default;
+  const info = statusInfo[order.status] || statusInfo.default;
+
+  const renderImageForStatus = () => {
+    const imageProps = {
+      alt: info.alt,
+      fill: true,
+      sizes: "(max-width: 768px) 100vw, 50vw",
+      className: "object-cover",
+      "data-ai-hint": info.hint,
+    };
+
+    switch (order.status) {
+      case 'Requested':
+        return <Image src="/images/requested.png" {...imageProps} priority />;
+      case 'Confirmed':
+        return <Image src="/images/confirmed.png" {...imageProps} />;
+      case 'Out for Delivery':
+        return <Image src="/images/delivering.png" {...imageProps} />;
+      case 'Delivered':
+        return <Image src="/images/delivered.png" {...imageProps} />;
+      case 'Cancelled':
+        return <Image src="/images/cancelled.png" {...imageProps} />;
+      default:
+        return <Image src="/images/requested.png" {...imageProps} priority />;
+    }
+  };
 
   if (order.status === 'Cancelled') {
     return (
@@ -79,15 +99,7 @@ function OrderTrackerCard({ order }: { order: Order }) {
         </CardHeader>
         <CardContent className="space-y-4 text-center">
             <div className="relative h-48 w-full overflow-hidden rounded-lg">
-                <Image
-                    key={imageInfo.src}
-                    src={imageInfo.src}
-                    alt={imageInfo.alt}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover"
-                    data-ai-hint={imageInfo.hint}
-                />
+                {renderImageForStatus()}
             </div>
             <p className="text-muted-foreground">This order has been cancelled.</p>
              <Button asChild variant="secondary">
@@ -151,15 +163,7 @@ function OrderTrackerCard({ order }: { order: Order }) {
           </div>
         </div>
         <div className="relative h-48 w-full overflow-hidden rounded-lg">
-           <Image
-            key={imageInfo.src}
-            src={imageInfo.src}
-            alt={imageInfo.alt}
-            fill
-            sizes="(max-width: 768px) 100vw, 50vw"
-            className="object-cover"
-            data-ai-hint={imageInfo.hint}
-          />
+           {renderImageForStatus()}
         </div>
       </CardContent>
     </Card>
