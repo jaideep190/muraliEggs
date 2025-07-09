@@ -115,7 +115,8 @@ function OrderTrackerCard({ order }: { order: Order }) {
            <Image
             src={imageInfo.src}
             alt={imageInfo.alt}
-            layout="fill"
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
           />
         </div>
