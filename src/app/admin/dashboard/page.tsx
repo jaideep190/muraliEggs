@@ -382,7 +382,7 @@ export default function AdminDashboardPage() {
 
       <main className="flex-1 p-4 sm:p-8">
         <Tabs defaultValue="dashboard">
-          <TabsList className="mb-6 grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-5">
+          <TabsList className="mb-6 grid h-auto w-full grid-cols-1 gap-2 sm:h-10 sm:grid-cols-5">
             <TabsTrigger value="dashboard"><BarChart className="mr-2 h-4 w-4"/>Dashboard</TabsTrigger>
             <TabsTrigger value="orders"><ShoppingBag className="mr-2 h-4 w-4"/>Active Orders</TabsTrigger>
             <TabsTrigger value="history"><History className="mr-2 h-4 w-4"/>History</TabsTrigger>
