@@ -4,6 +4,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Package, PackageCheck, Bike, Home, MapPin, PackageX, ShoppingCart, History } from 'lucide-react';
@@ -12,7 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { useAuthRedirect } from '@/hooks/useAuthRedirect';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
 
 const trackingSteps = [
   { icon: Package, label: 'Requested', status: 'Requested' },
@@ -28,6 +29,7 @@ type Order = {
   quantity: number;
   totalPrice: number;
   paymentMethod: 'COD' | 'UPI';
+  userId: string;
 };
 
 const statusImages: { [key: string]: { src: string; alt: string; hint: string; } } = {
@@ -65,8 +67,38 @@ const statusImages: { [key: string]: { src: string; alt: string; hint: string; }
 
 function OrderTrackerCard({ order }: { order: Order }) {
   const currentStepIndex = trackingSteps.findIndex(step => step.status === order.status);
-  const progressPercentage = currentStepIndex >= 0 ? (currentStepIndex / (trackingSteps.length - 1)) * 100 : 0;
+  const progressPercentage = order.status === 'Cancelled' ? 0 : (currentStepIndex >= 0 ? (currentStepIndex / (trackingSteps.length - 1)) * 100 : 0);
   const imageInfo = statusImages[order.status] || statusImages.default;
+
+  if (order.status === 'Cancelled') {
+    return (
+      <Card className="mb-6 opacity-0 animate-fade-in-up">
+        <CardHeader>
+          <CardTitle>Order #{order.id.substring(0, 6)}</CardTitle>
+          <CardDescription>Status: <span className="font-bold text-destructive">{order.status}</span></CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+            <div className="relative h-48 w-full overflow-hidden rounded-lg">
+                <Image
+                    src={imageInfo.src}
+                    alt={imageInfo.alt}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="object-cover"
+                    data-ai-hint={imageInfo.hint}
+                />
+            </div>
+            <p className="text-muted-foreground">This order has been cancelled.</p>
+             <Button asChild variant="secondary">
+              <Link href="/">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Place a New Order
+              </Link>
+            </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-6 opacity-0 animate-fade-in-up">
@@ -137,6 +169,7 @@ function TrackOrderContent() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (!user) {
@@ -145,34 +178,64 @@ function TrackOrderContent() {
     }
 
     setLoading(true);
+    const orderId = searchParams.get('orderId');
 
-    const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid)
-    );
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const userOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Order[];
-      const activeOrders = userOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled');
-      
-      // Sort by creation date DESC
-      activeOrders.sort((a, b) => {
-          const dateA = a.createdAt?.toDate()?.getTime() || 0;
-          const dateB = b.createdAt?.toDate()?.getTime() || 0;
-          return dateB - dateA;
+    let unsubscribe: () => void;
+
+    if (orderId) {
+      // A specific order is being tracked. Listen to it regardless of status.
+      const orderDocRef = doc(db, 'orders', orderId);
+      unsubscribe = onSnapshot(orderDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+           const orderData = { id: docSnap.id, ...docSnap.data() } as Order;
+           if (orderData.userId === user.uid) {
+                setOrders([orderData]);
+                setError(null);
+           } else {
+                setError("You don't have permission to view this order.");
+                setOrders([]);
+           }
+        } else {
+          setError("This order could not be found.");
+          setOrders([]);
+        }
+        setLoading(false);
+      }, (err) => {
+        console.error(err);
+        setError('Failed to load order data.');
+        setLoading(false);
       });
 
-      setOrders(activeOrders);
-      setLoading(false);
-      setError(null);
-    }, (err) => {
-      console.error(err);
-      setError('Failed to load real-time order data.');
-      setLoading(false);
-    });
+    } else {
+      // No specific order, show all active orders for the user.
+      const q = query(
+        collection(db, 'orders'),
+        where('userId', '==', user.uid)
+      );
+      
+      unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const userOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Order[];
+        // Filter for orders that are NOT delivered or cancelled
+        const activeOrders = userOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled');
+        
+        activeOrders.sort((a, b) => {
+            const dateA = a.createdAt?.toDate()?.getTime() || 0;
+            const dateB = b.createdAt?.toDate()?.getTime() || 0;
+            return dateB - dateA;
+        });
+
+        setOrders(activeOrders);
+        setLoading(false);
+        setError(null);
+      }, (err) => {
+        console.error(err);
+        setError('Failed to load real-time order data.');
+        setLoading(false);
+      });
+    }
 
     return () => unsubscribe();
-  }, [user, authLoading]);
+  }, [user, authLoading, searchParams]);
   
   if (authLoading || loading) {
      return (
@@ -221,13 +284,13 @@ function TrackOrderContent() {
           <div className="mt-6 flex flex-col sm:flex-row gap-2">
             <Button asChild>
               <Link href="/">
-                <ShoppingCart className="mr-2" />
+                <ShoppingCart className="mr-2 h-4 w-4" />
                 Order Some Eggs
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/order-history">
-                <History className="mr-2" />
+                <History className="mr-2 h-4 w-4" />
                 View History
               </Link>
             </Button>
